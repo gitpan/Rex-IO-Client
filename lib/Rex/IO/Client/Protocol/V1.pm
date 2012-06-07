@@ -40,10 +40,6 @@ sub get_information {
    my $tx = $self->_ua->get("$io_server/server/$host");
    if($tx->success) {
       my $data = $self->_json->decode($tx->res->body)->{data};
-
-      delete $data->{name};
-      delete $data->{type};
-
       return $data;
    }
    else {
@@ -60,7 +56,7 @@ sub get_information {
 sub get {
    my ($self, %option) = @_;
 
-   my $info = $self->get_information();
+   my $info = $self->get_information($option{server});
    my $data = $info->{$option{type}}->{$option{module}}->{$option{key}};
 
    # perhaps someone use a filename as a key 
@@ -237,6 +233,26 @@ sub configure_service_of_server {
    }
 
    die("Can't configure service $service of server $server.");
+}
+
+sub download_service {
+   my ($self, $service) = @_;
+   
+   my $io_server = $self->_server;
+   my $tx = $self->_ua->get("$io_server/repository/$service");
+
+   if($tx->success) {
+      open(my $fh, ">", "$service.tar.gz") or die($!);
+      binmode $fh;
+      print $fh $tx->res->body;
+      close($fh);
+
+      system("tar xzf $service.tar.gz");
+
+      if($? != 0) {
+         die("Error getting service.");
+      }
+   }
 }
 
 

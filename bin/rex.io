@@ -13,12 +13,32 @@ use Rex::IO::Client;
 use Mojo::JSON;
 use Data::Dumper;
 use Rex::IO::Client::Config;
+use Cwd qw(getcwd);
+require Rex::Commands::Fs;
 
 getopts(
    help => \&help,
    dump => sub {
       my $client = Rex::IO::Client->new;
       $client->dump;
+   },
+   run => sub {
+      Rex::Commands::Fs::mkdir(Rex::IO::Client::Config->get()->{"cache_dir"});
+      my $cwd = getcwd;
+      chdir(Rex::IO::Client::Config->get()->{"cache_dir"});
+      my $client = Rex::IO::Client->new;
+      $client->download_and_apply_services;
+      chdir($cwd);
+   },
+   apply => sub {
+      my ($service) = @_;
+
+      Rex::Commands::Fs::mkdir(Rex::IO::Client::Config->get()->{"cache_dir"});
+      my $cwd = getcwd;
+      chdir(Rex::IO::Client::Config->get()->{"cache_dir"});
+      my $client = Rex::IO::Client->new;
+      $client->download_and_apply_service($service);
+      chdir($cwd);
    },
    service => sub {
       my ($service) = @_;
@@ -191,6 +211,8 @@ sub help {
    print " rex.io - Command Line Client Version $Rex::IO::Client::VERSION\n";
    print "    --help                          to display this help message\n";
    print "    --dump                          to display every cmdb option known to this client\n";
+   print "    --run                           get all services belonging to this server and\n";
+   print "                                    executes them.\n";
    print "    --get=<key>                     get values of key from cmdb\n";
    print "    --server=<server>\n";
    print "       --add                        add a new server to the cmdb\n";
@@ -267,6 +289,32 @@ Rex.IO is a server infrastructure around the Rex Framework. It will combine serv
 =item    --list-services                 lists all known services
 
 =back
+
+=head2 CONFIGURATION
+
+rex.io client searchs for a configuration file in the following directories.
+
+=over 4
+
+=item *
+
+/etc/rex/io/client.conf
+
+=item *
+
+/usr/local/etc/rex/io/client.conf
+
+=back
+
+Example of a configuration file:
+
+ {
+    # the url pointing to Rex::IO::Server
+    server => "http://rex-io.lan:5000",
+       
+    # path to service cache directory
+    cache_dir => "/var/lib/rex/io/cache/service",
+ }
 
 =head2 WORDING
 
